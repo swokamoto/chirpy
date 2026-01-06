@@ -1,0 +1,9 @@
+- connect to db
+
+psql "postgres://swoka:postgres@localh
+ost:5432/chirpy"
+
+
+- up migration
+
+goose postgres "postgres://swoka:postgres@localhost:5432/chirpy" up
