@@ -1,6 +1,7 @@
-POST http://localhost:8080/admin/reset HTTP/1.1
+POST http://localhost:8080/api/chirps HTTP/1.1
 content-type: application/json
 
 {
-  "email": "mloneusk@example.co"
+  "body": "If you're committed enough, you can make any story work.",
+  "user_id": "a1263b77-46a7-459e-8bc0-7ddcdd7200dd"
 }
