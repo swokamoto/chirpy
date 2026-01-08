@@ -7,10 +7,9 @@ import (
 	"os"
 	"sync/atomic"
 
-	// "github.com/bootdotdev/learn-http-servers/internal/database"
+	"github.com/swokamoto/chirpy/internal/database"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
-	"github.com/swokamoto/chirpy/internal/database"
 )
 
 type apiConfig struct {
