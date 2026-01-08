@@ -1,21 +1,30 @@
 package main
 
-
 import (
+	"database/sql"
 	"log"
 	"net/http"
-	"sync/atomic"
-	"database/sql"
 	"os"
+	"sync/atomic"
+	"time"
+
+	"github.com/google/uuid"
 	"github.com/joho/godotenv"
-	"github.com/swokamoto/chirpy/internal/database"
 	_ "github.com/lib/pq"
+	"github.com/swokamoto/chirpy/internal/database"
 )
 
 type apiConfig struct {
 	fileserverHits atomic.Int32
 	dbQueries      *database.Queries
 }
+
+type User struct {
+		ID        uuid.UUID `json:"id"`
+		CreatedAt time.Time `json:"created_at"`
+		UpdatedAt time.Time `json:"updated_at"`
+		Email     string    `json:"email"`
+	}
 
 func main() {
 	godotenv.Load()
@@ -45,6 +54,8 @@ func main() {
 
 	mux.HandleFunc("POST /admin/reset", apiCfg.handlerReset)
 	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
+
+	mux.HandleFunc("POST /api/users", apiCfg.handlerUsersCreate)
 
 	srv := &http.Server{
 		Addr:    ":" + port,
