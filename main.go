@@ -36,51 +36,23 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error opening database: %s", err)
 	}
-	
-
-	// CREATE QUERIES OBJECT AFTER REOPENING CONNECTION
-	dbQueries := database.New(dbConn)  // ← Move this line here!
+	dbQueries := database.New(dbConn)
 
 	apiCfg := apiConfig{
 		fileserverHits: atomic.Int32{},
-		db:             dbQueries,  // Now using the correct connection
+		db:             dbQueries,
 		platform:       platform,
 	}
-
-	// Force a new connection
-	if err := dbConn.Ping(); err != nil {
-		log.Fatalf("Cannot ping database: %v", err)
-	}
-
-	// Try multiple ways to check for chirps table
-	log.Println("=== Database Debug ===")
-
-	rows, err := dbConn.Query("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name")
-	if err != nil {
-		log.Printf("Error querying information_schema: %v", err)
-	} else {
-		log.Println("Tables from information_schema:")
-		for rows.Next() {
-			var tableName string
-			if err := rows.Scan(&tableName); err == nil {
-				log.Printf("  - %s", tableName)
-			}
-		}
-		rows.Close()
-	}
-
 
 	mux := http.NewServeMux()
 	fsHandler := apiCfg.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir(filepathRoot))))
 	mux.Handle("/app/", fsHandler)
 
 	mux.HandleFunc("GET /api/healthz", handlerReadiness)
-	// mux.HandleFunc("POST /api/validate_chirp", handlerChirpsValidate)
-
-
-	mux.HandleFunc("POST /api/chirps", apiCfg.handlerChirpCreate)
 
 	mux.HandleFunc("POST /api/users", apiCfg.handlerUsersCreate)
+
+	mux.HandleFunc("POST /api/chirps", apiCfg.handlerChirpsCreate)
 
 	mux.HandleFunc("POST /admin/reset", apiCfg.handlerReset)
 	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
