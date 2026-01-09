@@ -5,14 +5,17 @@ import (
 	"net/http"
 	"time"
 	"strings"
+	"log"
 	"github.com/google/uuid"
 	"github.com/swokamoto/chirpy/internal/database"
 )
 
 func (cfg *apiConfig) handlerChirpCreate(w http.ResponseWriter, r *http.Request) {
+	log.Println("handlerChirpCreate called")
+	
 	type parameters struct {
 		Body string    `json:"body"`
-		UserID  uuid.NullUUID `json:"user_id"`
+		UserID  uuid.UUID `json:"user_id"`
 	}
 	type response struct {
 		ChirpID uuid.UUID `json:"chirp_id"`
@@ -31,6 +34,8 @@ func (cfg *apiConfig) handlerChirpCreate(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	log.Printf("Decoded params: %+v", params)
+
 	const maxChirpLength = 140
 	if len(params.Body) > maxChirpLength {
 		respondWithError(w, http.StatusBadRequest, "Chirp is too long", nil)
@@ -44,15 +49,27 @@ func (cfg *apiConfig) handlerChirpCreate(w http.ResponseWriter, r *http.Request)
 	}
 
 	cleaned := getCleanedBody(params.Body, badWords)
+	log.Printf("Cleaned body: %s", cleaned)
 
-	chirp, err := cfg.db.CreateChirp(r.Context(), database.CreateChirpParams{
-		Body:   cleaned,
-		UserID: params.UserID,
-	})
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't create chirp", err)
-		return
-	}
+	createParams := database.CreateChirpParams{
+        Body: cleaned,
+        UserID: uuid.NullUUID{
+            UUID:  params.UserID,
+            Valid: true,
+        },
+    }
+    log.Printf("About to call CreateChirp with params: %+v", createParams)
+    
+
+	chirp, err := cfg.db.CreateChirp(r.Context(), createParams)
+    if err != nil {
+        log.Printf("CreateChirp error: %v", err)
+        respondWithError(w, http.StatusInternalServerError, "Couldn't create chirp", err)
+        return
+    }
+    
+    log.Printf("Successfully created chirp: %+v", chirp)
+	
 
 	userID := uuid.UUID{}
     if chirp.UserID.Valid {
