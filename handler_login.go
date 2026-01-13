@@ -1,31 +1,22 @@
-package main
+package make
 
 import (
 	"encoding/json"
 	"net/http"
-	"time"
 	"github.com/swokamoto/chirpy/internal/auth"
-	"github.com/swokamoto/chirpy/internal/database"
-	"github.com/google/uuid"
 )
 
-type User struct {
-	ID        uuid.UUID `json:"id"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	Email     string    `json:"email"`
-}
-
-func (cfg *apiConfig) handlerUsersCreate(w http.ResponseWriter, r *http.Request) {
+func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Password string `json:"password"`
 		Email string `json:"email"`
 	}
+
 	type response struct {
 		User
 	}
 
-	decoder := json.NewDecoder(r.Body)
+	decoder :=json.NewDecoder(r.Body)
 	params := parameters{}
 	err := decoder.Decode(&params)
 	if err != nil {
@@ -33,22 +24,26 @@ func (cfg *apiConfig) handlerUsersCreate(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	// hash password
 	hashedPassword, err := auth.HashPassword(params.Password)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't hash password", err)
 		return
 	}
 
-	user, err := cfg.db.CreateUser(r.Context(), database.CreateUserParams{
-		Email:          params.Email,
-		HashedPassword: hashedPassword,
-	})
+	// authenticate user
+	user, err := cfg.db.GetUserByEmail(r.Context(), params.Email)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't create user", err)
+		respondWithError(w, http.StatusUnauthorized, "Incorrect email or password", err)
 		return
 	}
 
-	respondWithJSON(w, http.StatusCreated, response{
+	if !auth.CheckPasswordHash(params.Password, user.HashedPassword) {
+		respondWithError(w, http.StatusUnauthorized, "Incorrect email or password", nil)
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, response{
 		User: User{
 			ID:        user.ID,
 			CreatedAt: user.CreatedAt,
@@ -56,4 +51,5 @@ func (cfg *apiConfig) handlerUsersCreate(w http.ResponseWriter, r *http.Request)
 			Email:     user.Email,
 		},
 	})
+
 }
