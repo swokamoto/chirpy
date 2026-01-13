@@ -1,5 +1,5 @@
 -- +goose Up
-CREATE TABLE chirps (
+CREATE TABLE IF NOT EXISTS chirps (
     id UUID PRIMARY KEY,
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP NOT NULL,
