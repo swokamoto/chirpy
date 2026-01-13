@@ -164,3 +164,69 @@ func TestGetBearerToken(t *testing.T) {
 		})
 	}
 }
+
+func TestGetAPIKey(t *testing.T) {
+	tests := []struct {
+		name       string
+		authHeader string
+		wantKey    string
+		wantErr    bool
+	}{
+		{
+			name:       "Valid API key",
+			authHeader: "ApiKey f271c81ff7084ee5b99a5091b42d486e",
+			wantKey:    "f271c81ff7084ee5b99a5091b42d486e",
+			wantErr:    false,
+		},
+		{
+			name:       "Valid API key with extra spaces",
+			authHeader: "ApiKey  my-api-key-123",
+			wantKey:    " my-api-key-123",
+			wantErr:    false,
+		},
+		{
+			name:       "Missing Authorization header",
+			authHeader: "",
+			wantKey:    "",
+			wantErr:    true,
+		},
+		{
+			name:       "Wrong prefix (Bearer instead of ApiKey)",
+			authHeader: "Bearer f271c81ff7084ee5b99a5091b42d486e",
+			wantKey:    "",
+			wantErr:    true,
+		},
+		{
+			name:       "Only ApiKey without key",
+			authHeader: "ApiKey",
+			wantKey:    "",
+			wantErr:    true,
+		},
+		{
+			name:       "Case sensitive ApiKey",
+			authHeader: "apikey f271c81ff7084ee5b99a5091b42d486e",
+			wantKey:    "",
+			wantErr:    true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			headers := http.Header{}
+			if tt.authHeader != "" {
+				headers.Set("Authorization", tt.authHeader)
+			}
+
+			gotKey, err := GetAPIKey(headers)
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetAPIKey() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if gotKey != tt.wantKey {
+				t.Errorf("GetAPIKey() gotKey = %v, want %v", gotKey, tt.wantKey)
+			}
+		})
+	}
+}
