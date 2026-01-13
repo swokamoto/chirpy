@@ -1,4 +1,4 @@
-package make
+package main
 
 import (
 	"encoding/json"
@@ -24,21 +24,19 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// hash password
-	hashedPassword, err := auth.HashPassword(params.Password)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't hash password", err)
-		return
-	}
-
-	// authenticate user
 	user, err := cfg.db.GetUserByEmail(r.Context(), params.Email)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, "Incorrect email or password", err)
 		return
 	}
 
-	if !auth.CheckPasswordHash(params.Password, user.HashedPassword) {
+	isValid, err := auth.CheckPasswordHash(params.Password, user.HashedPassword)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Incorrect email or password", err)
+		return
+	}
+
+	if !isValid {
 		respondWithError(w, http.StatusUnauthorized, "Incorrect email or password", nil)
 		return
 	}
